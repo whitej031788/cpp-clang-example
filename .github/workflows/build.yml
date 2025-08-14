@@ -20,15 +20,19 @@ jobs:
       - name: Install dependencies (LLVM/Clang, cmake)
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build python3 llvm-dev clang clang-tidy
-          # If clang-tidy is versioned only, make an unversioned symlink for our script
+          sudo apt-get install -y cmake ninja-build python3 llvm-dev clang clang-tidy libclang-17-dev libffi-dev libxml2-dev zlib1g-dev libzstd-dev libtinfo-dev
+          # Symlink clang-tidy if versioned only
           if ! command -v clang-tidy >/dev/null 2>&1 && compgen -G "/usr/bin/clang-tidy-*" > /dev/null; then
             sudo ln -sf "$(ls -1 /usr/bin/clang-tidy-* | sort -V | tail -n1)" /usr/local/bin/clang-tidy
           fi
-          # Export CMake search path from llvm-config (provided by llvm-dev)
           echo "CMAKE_PREFIX_PATH=$(llvm-config --cmakedir)" >> $GITHUB_ENV
+          echo "LLVM_DIR=$(llvm-config --cmakedir)" >> $GITHUB_ENV
+          if [ -d "/usr/lib/cmake/clang-17" ]; then echo "Clang_DIR=/usr/lib/cmake/clang-17" >> $GITHUB_ENV; fi
 
       - name: Build project and plugin
+        env:
+          LLVM_DIR: ${{ env.LLVM_DIR }}
+          Clang_DIR: ${{ env.Clang_DIR }}
         run: |
           ./scripts/build.sh
 
