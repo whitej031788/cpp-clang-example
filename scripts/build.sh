@@ -46,14 +46,20 @@ for c in "${CANDIDATES[@]}"; do
 		# Clang cmake dir can be either under llvm or system cmake path
 		if [[ -d "$pfx/lib/cmake/clang" ]]; then
 			LLVM_ARGS+=("-DClang_DIR=$pfx/lib/cmake/clang")
-		elif [[ -d "/usr/lib/cmake/clang-17" ]]; then
-			LLVM_ARGS+=("-DClang_DIR=/usr/lib/cmake/clang-17")
+		else
+			for ver in 20 19 18 17; do
+				if [[ -d "/usr/lib/cmake/clang-$ver" ]]; then
+					LLVM_ARGS+=("-DClang_DIR=/usr/lib/cmake/clang-$ver")
+					break
+				fi
+			done
 		fi
 		echo "Using LLVM at $pfx"
 		# Prefer versioned clang if available on Linux, else unversioned
-		if command -v clang-17 >/dev/null 2>&1; then export CC=clang-17 CXX=clang++-17; 
-		elif command -v clang >/dev/null 2>&1; then export CC=clang CXX=clang++;
-		fi
+		for ver in 20 19 18 17; do
+			if command -v clang-$ver >/dev/null 2>&1; then export CC=clang-$ver CXX=clang++-$ver; break; fi
+		done
+		if [[ -z "${CC:-}" ]] && command -v clang >/dev/null 2>&1; then export CC=clang CXX=clang++; fi
 		break
 	fi
 done
