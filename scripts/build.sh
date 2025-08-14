@@ -42,7 +42,7 @@ for c in "${CANDIDATES[@]}"; do
 	fi
 done
 
-if (( ${#LLVM_ARGS[@]:-0} > 0 )); then
+if [[ ${#LLVM_ARGS[@]} -gt 0 ]]; then
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo "${LLVM_ARGS[@]}" ..
 else
 	echo "Warning: LLVM not auto-detected. If configuration fails, pass LLVM_DIR and Clang_DIR manually." >&2
