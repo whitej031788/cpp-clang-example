@@ -1,0 +1,4 @@
+Checks: '-*,example-call-pair-check,example-persistent-data-check'
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: none 
