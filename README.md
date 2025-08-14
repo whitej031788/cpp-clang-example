@@ -1,6 +1,10 @@
 # cpp-clang-example
 
-Minimal C++ project with one intentional resource leak and a custom clang-tidy plugin that flags `fopen` without a matching `fclose` in the same function. A script converts clang-tidy output to SARIF.
+Minimal C++ project with two custom clang-tidy checks and a small example program that intentionally violates them:
+- `example-call-pair-check`: flags `fopen` without a matching `fclose` in the same function
+- `example-persistent-data-check`: flags assignments to `m_pJPersistentObjectData->...` in a function that hasn’t called `Update` or `UpdateNoRecompute`
+
+A script converts clang-tidy output to SARIF.
 
 ## Prereqs (macOS/Homebrew suggested)
 - CMake 3.16+
@@ -20,45 +24,41 @@ Outputs:
 - `out/tidy.sarif`: SARIF v2.1.0
 
 ## What’s in this repo
-- `src/main.cpp`: tiny program with an intentional leak: `fopen` without `fclose`.
+- `src/main.cpp`: tiny program with intentional issues that trigger both checks (`fopen`/no `fclose`, and persistent data set without a prior update).
 - `tidy-plugin/`:
-  - `CallPairCheck.h/.cpp`: a custom clang-tidy check that finds functions that call `fopen` but not `fclose`.
-  - `TidyModule.cpp`: registers the check with clang-tidy under the name `example-call-pair-check`.
+  - `CallPairCheck.h/.cpp`: clang-tidy check that finds functions that call `fopen` but not `fclose`.
+  - `PersistentDataCheck.h/.cpp`: clang-tidy check that finds assignments to `m_pJPersistentObjectData->...` without a prior call to `Update`/`UpdateNoRecompute` in the same function.
+  - `TidyModule.cpp`: registers both checks under `example-call-pair-check` and `example-persistent-data-check`.
   - `CMakeLists.txt`: builds the plugin as a shared module (`TidyLeakCheck.so`/`.dylib`).
 - `scripts/`:
-  - `build.sh`: configures and builds the app and the plugin; auto-detects Homebrew LLVM if present.
-  - `run_tidy.sh`: runs clang-tidy, loads the plugin, executes our check, and converts output to SARIF.
+  - `build.sh`: configures and builds the app and the plugin; auto-detects LLVM on macOS/Linux and aligns versions.
+  - `run_tidy.sh`: runs clang-tidy, loads the plugin, executes our checks, and converts output to SARIF; aligns clang-tidy version with the build to avoid ABI mismatches.
   - `tidy_to_sarif.py`: transforms clang-tidy text diagnostics to SARIF 2.1.0.
-- `.clang-tidy`: enables only our check (`example-call-pair-check`).
+- `.clang-tidy`: enables both checks (`example-call-pair-check,example-persistent-data-check`).
 
 ## How the custom clang-tidy validator works
 ### Architecture in one minute
 - **clang-tidy plugin (our code)**: A shared library that defines a `ClangTidyModule` and one or more `ClangTidyCheck`s.
 - **Module registration** (`tidy-plugin/TidyModule.cpp`):
   - Implements a subclass of `ClangTidyModule` and registers check factories by name.
-  - Example: registers `example-call-pair-check` → this name is how clang-tidy discovers and runs our check.
-- **The check** (`tidy-plugin/CallPairCheck.*`):
-  - Subclasses `clang::tidy::ClangTidyCheck`.
-  - `registerMatchers(...)`: uses Clang AST Matchers to find function definitions that contain a call to `::fopen(...)` but no call to `::fclose(...)` anywhere in the same function body.
-  - `check(...)`: runs when a match is found; emits a diagnostic via `diag(...)` at the `fopen` callsite.
+  - Registers `example-call-pair-check` and `example-persistent-data-check` so clang-tidy can discover and run them.
+- **The checks**:
+  - `tidy-plugin/CallPairCheck.*`: `registerMatchers(...)` finds function definitions that contain a call to `::fopen(...)` but no call to `::fclose(...)` in the same function; `check(...)` emits a diagnostic at the `fopen` callsite.
+  - `tidy-plugin/PersistentDataCheck.*`: `registerMatchers(...)` watches assignments in a function and checks for any `Update`/`UpdateNoRecompute` call in that function body; if none, and the assignment’s LHS text contains `m_pJPersistentObjectData->`, `check(...)` emits a diagnostic at the assignment.
 
 ### What happens when you run the script
 - `scripts/run_tidy.sh` does three things:
-  - Finds the built plugin (`TidyLeakCheck.so`/`.dylib`) and a suitable `clang-tidy` binary.
+  - Finds the built plugin (`TidyLeakCheck.so`/`.dylib`) and selects a matching `clang-tidy` binary version.
   - Invokes `clang-tidy` with:
-    - `-p build/` so it reads `compile_commands.json` (exact compile flags for your files),
+    - `-p build/` so it reads `compile_commands.json`,
     - `-load <plugin>` to load our module,
-    - `-checks=-*,example-call-pair-check` to run only our custom check,
+    - the checks enabled via `.clang-tidy`,
     - additional macOS SDK flags so standard headers are found.
   - Pipes the output to `scripts/tidy_to_sarif.py`, which produces `out/tidy.sarif`.
 
 ### How the matcher works (high-level)
-- The matcher looks for:
-  - A function definition (`functionDecl(isDefinition(), ...)`)
-  - That has a descendant `callExpr` to `::fopen` (bound as `"call"`)
-  - And does not have any descendant call to `::fclose` in the same function body
-- On each match, `check(...)` emits the warning:
-  - "function 'X' calls fopen but does not call fclose; potential resource leak"
+- Call-pair: function with `::fopen` descendant and without any `::fclose` descendant → warn.
+- Persistent-data: any assignment inside a function with no `Update`/`UpdateNoRecompute` calls, where the LHS pretty-printed text contains `m_pJPersistentObjectData->` → warn.
 
 ### Why the `-p build` and `compile_commands.json` matter
 - clang-tidy compiles your code under the hood to get a precise AST.
@@ -68,11 +68,11 @@ Outputs:
 - Add a new `*.h/*.cpp` pair implementing another `ClangTidyCheck`.
 - Register it in `TidyModule.cpp` with a unique name.
 - Rebuild and run with `-checks=-*,your-check-name` (or add it to `.clang-tidy`).
-- You can pattern-match almost anything via AST Matchers (see LLVM’s matcher reference) and then signal a problem with `diag(...)`.
+- You can pattern-match almost anything via AST Matchers and report with `diag(...)`.
 
 ### Limitations of this simple example
-- The `fopen`/`fclose` pairing is checked only within a single function body; it doesn’t track ownership across functions or error paths.
-- It may report false positives for functions that purposely transfer ownership.
+- The call-pair check is intra-procedural and may report intentional resource hand-offs.
+- The persistent-data check is a textual heuristic on the LHS; adjust the pattern as needed, or replace with structural matchers for your API types.
 
 ## Cleaning up / housekeeping
 - Build products go to `build/` and analysis outputs to `out/` (both ignored by git).
