@@ -1,24 +1,24 @@
 #include "PersistentDataCheck.h"
 
-#include "clang-tidy/ClangTidy.h"
 #include "clang/AST/ASTContext.h"
 
 using namespace clang;
 using namespace clang::ast_matchers;
 using namespace clang::tidy;
 
-// This is a simple intra-procedural approximation of the Coverity-like checker:
+// This is a simple intra-procedural clang-tidy check
+// This is meant to mimic Hexagon SettingPersistentDataCheck
 // If a function contains an assignment to an expression whose printed form
 // contains "m_pJPersistentObjectData->" but there is no prior call in the same
 // function to Update(...) or UpdateNoRecompute(...), flag it.
 
 namespace {
-struct MatchIds {
-	static constexpr llvm::StringLiteral kFunc{"func"};
-	static constexpr llvm::StringLiteral kAssign{"assign"};
-	static constexpr llvm::StringLiteral kUpdate{"update"};
-	static constexpr llvm::StringLiteral kUpdateNoReco{"updateNoReco"};
-};
+	struct MatchIds {
+		static constexpr llvm::StringLiteral kFunc{"func"};
+		static constexpr llvm::StringLiteral kAssign{"assign"};
+		static constexpr llvm::StringLiteral kUpdate{"update"};
+		static constexpr llvm::StringLiteral kUpdateNoReco{"updateNoReco"};
+	};
 }
 
 PersistentDataCheck::PersistentDataCheck(StringRef Name, ClangTidyContext *Context)

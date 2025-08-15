@@ -1,7 +1,5 @@
 #include "CallPairCheck.h"
 
-#include "clang-tidy/ClangTidy.h"
-#include "clang/AST/ASTContext.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 
 using namespace clang;

@@ -30,10 +30,10 @@ CANDIDATES=(
 )
 
 # Linux system LLVM locations (Ubuntu/Debian)
-if [[ -d /usr/lib ]]; then
-	mapfile -t SYS_LLVM_CM_DIRS < <(ls -d /usr/lib/llvm-*/lib/cmake/llvm 2>/dev/null | sort -V)
-	if (( ${#SYS_LLVM_CM_DIRS[@]} > 0 )); then
-		LAST="${SYS_LLVM_CM_DIRS[-1]}"
+if [[ "$(uname -s)" == "Linux" && -d /usr/lib ]]; then
+	SYS_LLVM_CM_DIRS="$(ls -d /usr/lib/llvm-*/lib/cmake/llvm 2>/dev/null | sort -V || true)"
+	if [[ -n "$SYS_LLVM_CM_DIRS" ]]; then
+		LAST="$(printf '%s\n' $SYS_LLVM_CM_DIRS | tail -n 1)"
 		SYS_PFX="$(cd "$LAST/../.." && pwd)"
 		CANDIDATES+=("$SYS_PFX")
 	fi
@@ -62,7 +62,7 @@ for c in "${CANDIDATES[@]}"; do
 		if [[ -z "${CC:-}" ]] && command -v clang >/dev/null 2>&1; then export CC=clang CXX=clang++; fi
 		break
 	fi
-done
+	done
 
 if [[ ${#LLVM_ARGS[@]} -gt 0 ]]; then
 	cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo "${LLVM_ARGS[@]}" ..
