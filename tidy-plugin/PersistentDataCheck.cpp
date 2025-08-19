@@ -7,7 +7,7 @@ using namespace clang::ast_matchers;
 using namespace clang::tidy;
 
 // This is a simple intra-procedural clang-tidy check
-// This is meant to mimic Hexagon SettingPersistentDataCheck
+// This is meant to mimic a SettingPersistentDataCheck
 // If a function contains an assignment to an expression whose printed form
 // contains "m_pJPersistentObjectData->" but there is no prior call in the same
 // function to Update(...) or UpdateNoRecompute(...), flag it.
