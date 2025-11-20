@@ -77,3 +77,15 @@ Outputs:
 ## Cleaning up / housekeeping
 - Build products go to `build/` and analysis outputs to `out/` (both ignored by git).
 - It’s safe to delete `build/` and `out/` at any time. 
+
+## SBOM (SPDX) generation
+This project integrates the DEMCON `cmake-sbom` module to produce an SPDX SBOM at install time.
+
+Local build and SBOM:
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(pwd)/install"
+cmake --build build --target install -j
+# SBOM files are written under ./install (look for *.spdx* files)
+```
+
+In CI, the workflow uploads an `sbom` artifact collected from the install prefix.

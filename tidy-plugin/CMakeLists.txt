@@ -55,3 +55,8 @@ target_link_libraries(TidyLeakCheck
 	clangSerialization
 	clangTooling
 ) 
+
+# Install the plugin as a module library
+install(TARGETS TidyLeakCheck
+	LIBRARY DESTINATION lib
+)

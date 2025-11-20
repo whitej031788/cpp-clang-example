@@ -1,3 +1,52 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install LLVM/Clang and tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake clang-17 llvm-17-dev libclang-17-dev
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/install
+
+      - name: Build
+        run: cmake --build build --config Release --target all -j2
+
+      - name: Install
+        run: cmake --build build --config Release --target install
+
+      - name: Show install tree
+        run: ls -R ${{ runner.temp }}/install || true
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            ${{ runner.temp }}/install/**/*.spdx*
+            ${{ runner.temp }}/install/**/SBOM*
+          if-no-files-found: warn
+
+      - name: Upload install dir
+        uses: actions/upload-artifact@v4
+        with:
+          name: install
+          path: ${{ runner.temp }}/install
 name: Build
 
 on:
