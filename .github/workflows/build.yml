@@ -58,12 +58,8 @@ jobs:
       #   env:
       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       
-      - name: Configure (install prefix for SBOM)
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/install
-      
       - name: Install (generates SBOM)
-        run: cmake --build build --config Release --target install
+        run: cmake --install build --prefix ${{ runner.temp }}/install
       
       - name: Show install tree
         run: ls -R ${{ runner.temp }}/install || true
