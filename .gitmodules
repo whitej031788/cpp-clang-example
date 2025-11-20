@@ -1,0 +1,3 @@
+[submodule "third_party/cmake-sbom"]
+	path = third_party/cmake-sbom
+	url = https://github.com/DEMCON/cmake-sbom
