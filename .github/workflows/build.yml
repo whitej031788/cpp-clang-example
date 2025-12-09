@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of SQS analysis
           submodules: recursive
 
       - name: Install dependencies (LLVM/Clang, cmake)
