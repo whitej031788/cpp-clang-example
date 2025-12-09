@@ -41,22 +41,6 @@ jobs:
       - name: Run clang-tidy and generate SARIF
         run: |
           ./scripts/run_tidy.sh
-
-      - uses: SonarSource/sonarqube-scan-action@v5
-        with:
-          args: >
-            -Dsonar.sarifReportPaths=out/tidy.sarif
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      # If you wish to fail your job when the Quality Gate is red, uncomment the
-      # following lines. This would typically be used to fail a deployment.
-      # We do not recommend to use this in a pull request. Prefer using pull request
-      # decoration instead.
-      # - uses: SonarSource/sonarqube-quality-gate-action@v1
-      #   timeout-minutes: 5
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       
       - name: Install SBOM verification dependencies
         run: |
@@ -87,3 +71,21 @@ jobs:
         with:
           name: install
           path: ${{ runner.temp }}/install
+
+      - uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          args: >
+            -Dsonar.sarifReportPaths=out/tidy.sarif
+            -Dsonar.sca.sbomImportPaths=${{ runner.temp }}/install/**/*.spdx*
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # If you wish to fail your job when the Quality Gate is red, uncomment the
+      # following lines. This would typically be used to fail a deployment.
+      # We do not recommend to use this in a pull request. Prefer using pull request
+      # decoration instead.
+      # - uses: SonarSource/sonarqube-quality-gate-action@v1
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    
