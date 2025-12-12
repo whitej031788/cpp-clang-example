@@ -52,31 +52,31 @@ jobs:
           python3 -m pip install -r third_party/cmake-sbom/dist/common/requirements.txt
       
       - name: Install (generates SBOM)
-        run: cmake --install build --prefix ${{ runner.temp }}/install
+        run: cmake --install build --prefix install
       
       - name: Show install tree
-        run: ls -R ${{ runner.temp }}/install || true
+        run: ls -R install || true
       
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: |
-            ${{ runner.temp }}/install/**/*.spdx*
-            ${{ runner.temp }}/install/**/SBOM*
+            install/**/*.spdx*
+            install/**/SBOM*
           if-no-files-found: warn
       
       - name: Upload install dir
         uses: actions/upload-artifact@v4
         with:
           name: install
-          path: ${{ runner.temp }}/install
+          path: install
 
       - uses: SonarSource/sonarqube-scan-action@v5
         with:
           args: >
             -Dsonar.sarifReportPaths=out/tidy.sarif
-            -Dsonar.sca.sbomImportPaths=${{ runner.temp }}/install/**/*.spdx*
+            -Dsonar.sca.sbomImportPaths=install/**/*.spdx*
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
