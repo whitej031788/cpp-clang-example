@@ -27,6 +27,7 @@ include(sbom)
 sbom_generate(
 	SUPPLIER "Organization: cpp-clang-example"
 	SUPPLIER_URL "https://example.invalid"
+	OUTPUT "some_output_file.spdx"
 )
 
 # On macOS with Homebrew LLVM, prefer its toolchain if available
