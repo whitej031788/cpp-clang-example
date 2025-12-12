@@ -76,7 +76,7 @@ jobs:
         with:
           args: >
             -Dsonar.sarifReportPaths=out/tidy.sarif
-            -Dsonar.sca.sbomImportPaths=install/cpp_clang_example/cpp_clang_example-sbom-7e0df72+main.spdx
+            -Dsonar.sca.sbomImportPaths=some_output_file.spdx
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
